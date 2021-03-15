@@ -133,3 +133,7 @@ class OrderManager:
         self.order['event_type'] = {
             'S': 'order_fulfilled'
         }
+
+    @property
+    def order_id(self):
+        return self._order_id

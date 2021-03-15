@@ -1,9 +1,10 @@
 import boto3
 from os import getenv
 import json
+from .external_producer import ExternalProducer, ExternalProducerException
 
 
-class CakeProduceManagerException(Exception):
+class CakeProduceManagerException(ExternalProducerException):
     pass
 
 
@@ -11,7 +12,9 @@ class EmptyParameterException(CakeProduceManagerException):
     pass
 
 
-class CakeProduceManager:
+class CakeProduceManager(ExternalProducer):
+    event_type = 'order_placed'
+
     def __init__(self):
         """
         """
@@ -39,7 +42,7 @@ class CakeProduceManager:
             region_name=region_name
         )
 
-    def handle_placed_orders(self, orders_placed: list):
+    def handle_orders(self, orders_placed: list):
         """
         """
         email_results = []

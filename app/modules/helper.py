@@ -2,6 +2,7 @@ import json
 from pydantic import ValidationError
 from functools import wraps
 import base64
+import logging
 
 
 def response_builder(status_code: int, message: dict):
@@ -45,4 +46,13 @@ def parse_kinesis_payload(record: dict):
     return payload
 
 
+def configure_logging():
+    """Configuring application logging
+    """
+    logging_format = '%(asctime)s: %(name)s: %(levelname)s: %(message)s'
+    logging.basicConfig(format=logging_format)
 
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    return logger

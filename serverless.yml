@@ -60,8 +60,8 @@ functions:
       DYNAMO_ORDER_TABLE_NAME: ordersTable
       KINESIS_ORDER_STREAM_NAME: order-events
 
-  notify_cake_producer:
-    handler: app/handler.notify_cake_producer
+  notify_external_parties:
+    handler: app/handler.notify_external_parties
     events:
       - stream:
           arn: arn:aws:kinesis:#{AWS::Region}:#{AWS::AccountId}:stream/order-events
