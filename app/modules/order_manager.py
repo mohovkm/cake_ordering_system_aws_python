@@ -24,7 +24,7 @@ class OrderManager:
 
         order_stream_name = getenv('KINESIS_ORDER_STREAM_NAME')
         if not order_stream_name:
-            detail = 'ENV variable "KINESIS_STREAM_NAME" can\'t be empty'
+            detail = 'ENV variable "KINESIS_ORDER_STREAM_NAME" can\'t be empty'
             raise EmptyParameterException(detail)
 
         self.order_table_name = order_table_name
@@ -94,12 +94,17 @@ class OrderManager:
     def fulfill_order(self, fulfillment_id: str):
         """Fulfill order and save to dynamodb
         """
-        self.get_order_from_dynamodb()
+        order = self.get_order_from_dynamodb()
+        if not order:
+            detail = f'Can\'t find order with id: [{self.order_id}]'
+            return detail, False
+
         self.create_fulfilled_order(fulfillment_id)
         self.save_order_in_dynamo()
         self.place_order_into_stream()
 
-        return self.order
+        detail = f'Order with order_id: {self.order_id} was sent to delivery'
+        return detail, self.order
 
     def get_order_from_dynamodb(self):
         """Getting order from DynamoDB by order_id
@@ -137,3 +142,16 @@ class OrderManager:
     @property
     def order_id(self):
         return self._order_id
+
+    def update_order_for_delivery(self):
+        """
+        """
+        self.get_order_from_dynamodb()
+
+        self.order['sent_to_delivery_date'] = {
+            'N': str(int(datetime.now().timestamp()))
+        }
+
+        self.save_order_in_dynamo()
+
+        return self.order

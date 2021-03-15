@@ -43,7 +43,7 @@ class CakeProduceManager(ExternalProducer):
         )
 
     def handle_orders(self, orders_placed: list):
-        """
+        """Handling the order and notifying the cake producers
         """
         email_results = []
 

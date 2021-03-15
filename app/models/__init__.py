@@ -1,2 +1,3 @@
 from .event_order_model import EventOrderModel
 from .event_fulfill_order_model import EventFulfillOrderModel
+from .event_delivered_order_model import EventDeliveredOrderModel

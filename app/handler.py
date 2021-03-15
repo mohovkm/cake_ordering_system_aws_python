@@ -2,7 +2,7 @@ from app.modules import OrderManager, OrderError
 from app.modules import CakeProduceManager, DeliveryManager
 from app.modules import ExternalProducerSupervisor
 from app.modules import response_builder, validate_http_request, parse_kinesis_payload, configure_logging
-from app.models import EventOrderModel, EventFulfillOrderModel
+from app.models import EventOrderModel, EventFulfillOrderModel, EventDeliveredOrderModel
 
 # Configuring logging for application. It's configured to standard stdout,
 # because all stdout messages will go to the Amazon CloudWatch.
@@ -58,10 +58,11 @@ def fulfill_order(event, context):
         return response_builder(400, {'detail': detail})
 
     # Fulfilling order
-    order.fulfill_order(fulfillment_id=fulfillment_id)
+    detail, is_complete = order.fulfill_order(fulfillment_id=fulfillment_id)
 
-    detail = f'Order with order_id: {order_id} was sent to delivery'
     logger.info(detail)
+    if not is_complete:
+        return response_builder(404, {'detail': detail})
 
     return response_builder(200, {'detail': detail})
 
@@ -92,3 +93,39 @@ def notify_external_parties(event, context):
         logger.info(detail)
 
     return '; '.join(details)
+
+
+def notify_delivery_company(event, context):
+    """Notifying third-parties delivery companies about order
+
+    SQS Trigger
+    """
+    detail = 'We called the delivery! Really!!'
+    logger.info(detail)
+
+
+@validate_http_request(validation_model=EventDeliveredOrderModel)
+def order_delivered(event, context):
+    """
+
+    HTTP Trigger
+    """
+    event = EventDeliveredOrderModel(**event).dict()
+    order_id = event.get('body').get('order_id')
+    order_review = event.get('body').get('order_review')
+    delivery_company_id = event.get('body').get('delivery_company_id')
+
+    dm = DeliveryManager()
+    detail = dm.order_delivered(order_id, delivery_company_id, order_review)
+
+    return response_builder(200, {'detail': detail})
+
+
+def notify_customer_service(event, context):
+    """Notifying customer service about delivery
+
+    SQS Trigger
+    """
+    detail = 'We called the customer service endpoint! Really!!'
+    logger.info(detail)
+

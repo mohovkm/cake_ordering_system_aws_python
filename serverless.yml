@@ -39,6 +39,13 @@ provider:
           ses:FromAddress:
             - mohovkm@yandex.ru
 
+    - Effect: Allow
+      Action:
+        - sqs:SendMessage
+      Resource:
+        - arn:aws:sqs:#{AWS::Region}:#{AWS::AccountId}:deliveryServiceQueue
+        - arn:aws:sqs:#{AWS::Region}:#{AWS::AccountId}:customerServiceQueue
+
 functions:
   create_order:
     handler: app/handler.create_order
@@ -69,6 +76,45 @@ functions:
       REGION: ${self:provider.region}
       CAKE_PRODUCER_EMAIL: zsprogrammer3@gmail.com
       ORDERING_SYSTEM_EMAIL: mohovkm@yandex.ru
+      DELIVERY_COMPANY_QUEUE:
+        Ref: deliveryServiceQueue
+      DYNAMO_ORDER_TABLE_NAME: ordersTable
+      KINESIS_ORDER_STREAM_NAME: order-events
+
+  notify_delivery_company:
+    handler: app/handler.notify_delivery_company
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt:
+              - deliveryServiceQueue
+              - Arn
+          batchSize: 1
+
+  order_delivered:
+    handler: app/handler.order_delivered
+    events:
+      - http:
+          path: /order/delivered
+          method: post
+    environment:
+      REGION: ${self:provider.region}
+      DYNAMO_ORDER_TABLE_NAME: ordersTable
+      KINESIS_ORDER_STREAM_NAME: order-events
+      DELIVERY_COMPANY_QUEUE:
+        Ref: deliveryServiceQueue
+      CUSTOMER_SERVICE_QUEUE:
+        Ref: customerServiceQueue
+
+  notify_customer_service:
+    handler: app/handler.notify_customer_service
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt:
+              - customerServiceQueue
+              - Arn
+          batchSize: 1
 
 resources:
   Resources:
@@ -89,3 +135,13 @@ resources:
           - AttributeName: "order_id"
             KeyType: "HASH"
         BillingMode: PAY_PER_REQUEST
+
+    deliveryServiceQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: deliveryServiceQueue
+
+    customerServiceQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: customerServiceQueue
